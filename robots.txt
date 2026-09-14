@@ -1,2 +1,2 @@
 User-agent: *
-Disallow: /guides/github-pages-api-publishing-verification/
+Allow: /
