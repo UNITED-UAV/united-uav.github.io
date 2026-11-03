@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>UG82 Payload Coordinate Frames: An Integration Guide to Axes, Offsets and Rotations | UNITED UAV</title>
+  <meta name="description" content="Define a UG82 payload coordinate interface with named axes, explicit lever arms, rotation direction, inverse transforms and reproducible numerical checks.">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://united-uav.github.io/guides/ug82-payload-coordinate-frames-axes-offsets-rotations/">
+  <link rel="stylesheet" href="../../assets/styles.css">
+</head>
+<body data-publication-digest="37c834a216b1af77da5a21e068cce93d786bda9267301955ae4a2f109fce2393">
+  <header class="site-header"><a href="../../">UNITED UAV Technical Resources</a></header>
+  <main>
+    <article>
+      <p class="eyebrow">Technical field guide</p>
+      <h1>UG82 Payload Coordinate Frames: An Integration Guide to Axes, Offsets and Rotations</h1>
+      <p class="meta">Published 2026-11-03 by UNITED UAV Official</p>
+      <p class="lede">A payload can communicate successfully and still describe the wrong direction. A camera position expressed from the navigation unit, an optical ray expressed in the camera frame and an attitude expressed relative to a local navigation frame are different quantities. Treating them as interchangeable can produce plausible-looking files with incorrect geometry. For a team evaluating a UG82 installation, a useful early deliverable is therefore a coordinate-interface contract: a precise description of the origins, axes, units, transformations and observation times that make each number interpretable.</p>
+      <section>
+        <h2>Separate the aircraft identity from the interface being proposed</h2>
+        <p>UNITED UAV lists the UG82 as a heavy-lift fixed-wing VTOL platform and describes its mission bay in the nose and forward fuselage. That identifies the aircraft and a general installation region. It does not define a sensor&#39;s optical center, the navigation origin, a mounting transform or the coordinate convention of an exported message. Obtain those definitions for the actual proposed equipment and revision rather than deriving them from the model name or a catalog image.</p>
+        <p>The examples in this guide are invented numerical fixtures for reviewing an interface. They are not UG82 installation dimensions, calibration values, performance measurements or operating settings. No particular autopilot, ROS interface, camera, gimbal or navigation export is assumed. A supplier may use a different convention from every example below; the engineering requirement is that its convention be explicit and its transformations produce the agreed results.</p>
+      </section>
+      <section>
+        <h2>Give every origin a physical or mathematical meaning</h2>
+        <p>Create a frame inventory before discussing offsets. Depending on the proposed system, it may include an aircraft reference frame, navigation-unit frame, antenna reference, mounting-plate frame, gimbal-base frame, sensor frame and project navigation frame. Only include equipment actually proposed. Give each frame a unique name and identify whether its origin is a physical feature, an estimated reference point or a mathematical construction.</p>
+        <p>Describe how a reviewer can locate the reference. A drawing datum, instrument reference mark and optical projection center are not automatically coincident. Likewise, an antenna&#39;s relevant measurement reference may differ from the visible center of its housing. Request the equipment documentation that defines the intended point. A measured distance between two convenient surfaces cannot silently become the offset between two internally defined measurement origins.</p>
+        <p>Keep geometry separate from aircraft balance. A lever arm used to locate a sensor observation is not, by itself, a center-of-gravity calculation or an installation approval. The integration team needs the applicable structural and balance assessment separately. A correct coordinate conversion cannot establish that a physical installation is acceptable for the aircraft.</p>
+      </section>
+      <section>
+        <h2>Specify axis directions, handedness and units together</h2>
+        <p>For each frame, define the positive direction of all three axes and the units of every quantity. A label such as body frame is incomplete without those directions. Record whether a position is expressed in metres or millimetres, whether an angle is in degrees or radians, and whether a reported orientation rotates coordinates between frames or describes a physical rotation within one frame.</p>
+        <p>Convention differences are real even between widely used software systems. The official PX4 ROS 2 guide documents forward-right-down and forward-left-up body conventions, alongside north-east-down and east-north-up navigation conventions. This is a concrete reason to inspect an interface definition. It is not evidence that the UG82 uses either software system or convention.</p>
+        <p>Attach a small axis sketch and a basis-vector example to the interface document. A positive unit vector along each source axis should map to an explicitly stated destination vector. This is more discriminating than an illustration showing an aircraft approximately level. A symmetric or zero-valued test can conceal an axis swap, sign reversal or unit mismatch.</p>
+      </section>
+      <section>
+        <h2>Use simple convention changes as review fixtures</h2>
+        <p>Consider a vector expressed in an east-north-up frame as east 12 metres, north 7 metres and up minus 3 metres. In a north-east-down frame with the same origin, the same vector has components north 7, east 12 and down 3. The horizontal components exchange positions and the vertical sign changes. There is no positional offset in this example because the two origins were deliberately defined as coincident.</p>
+        <p>A separate body-convention fixture can start with forward-left-up components of 2, 0.4 and minus 0.3 metres. Describing the same vector as forward-right-down gives 2, minus 0.4 and 0.3 metres. These are convention conversions, not instructions for changing an aircraft parameter. Preserve the assumed origin and axis definitions with each expected result so another engineer can reproduce the calculation.</p>
+        <p>Check that a pure rotation preserves vector length. For the navigation example, the sum of squared components is 202 square metres before and after conversion. That check catches some implementation mistakes, but it does not distinguish every wrong rotation: an incorrect orthogonal rotation can preserve length too. Pair the length check with the expected axis directions.</p>
+      </section>
+      <section>
+        <h2>Define exactly what a rigid transform maps</h2>
+        <p>For a point, write the mapping explicitly as p_A = R_AB p_B + t_AB. Here p_B contains the coordinates of the point in frame B. R_AB rotates those coordinates into frame A, and t_AB is the position of the origin of B expressed in A. The result p_A is the position of the same point expressed in A. The subscripts alone are not a universal convention, so include this sentence-level definition in the interface contract.</p>
+        <p>Keep the translation&#39;s reference frame visible. An offset measured along the source axes and an offset expressed along the destination axes generally have different components when the frames are rotated. A three-number field named sensor_offset is therefore insufficient. It needs a source origin, destination origin, direction, coordinate frame, unit and applicable mounting state.</p>
+        <p>For a hypothetical fixture, choose a rotation that maps the positive X axis of B onto positive Y in A. Let the translation in A be 0.30, minus 0.10 and 0.20 metres. The point with B coordinates 1, 0 and 0 metres then has A coordinates 0.30, 0.90 and 0.20 metres. This small calculation checks rotation and translation together without using any aircraft-specific dimensions.</p>
+      </section>
+      <section>
+        <h2>Do not leave rotation order implicit</h2>
+        <p>An orientation represented by three angles requires more than the values. Document the axis sequence, whether the rotations act about fixed or moving axes, the angle sign convention and the multiplication order. Two suppliers can use the same words roll, pitch and yaw while expecting different operations. A plausible attitude plot is insufficient evidence that the conventions agree.</p>
+        <p>Use an asymmetric sequence to expose the difference. For active rotations about fixed axes, start with the vector 1, 0, 0. A positive ninety-degree rotation about Z produces 0, 1, 0; applying a positive ninety-degree rotation about X afterwards produces 0, 0, 1. Reversing the order leaves the first X rotation unchanged and the final Z rotation produces 0, 1, 0. The two results differ because the rotations do not commute.</p>
+        <p>If the interface uses quaternions, record component ordering, normalization requirements and mapping direction rather than guessing them from a four-number array. Compare transformed basis vectors, not only quaternion components. Opposite-sign unit quaternions can describe the same orientation, so a component-wise comparison can reject an equivalent orientation while overlooking a more important convention error elsewhere.</p>
+      </section>
+      <section>
+        <h2>Check the inverse rather than simply negating an offset</h2>
+        <p>For an orthonormal rotation, the inverse point mapping is p_B = transpose(R_AB) times (p_A minus t_AB). Expressed as another rotation-plus-translation mapping, its translation is minus transpose(R_AB) times t_AB. That is generally different from merely negating the original three translation components. The inverse offset must be expressed in the inverse mapping&#39;s destination frame.</p>
+        <p>Apply the inverse to the earlier fixture. Subtracting 0.30, minus 0.10 and 0.20 from the A point 0.30, 0.90 and 0.20 leaves 0, 1, 0. The inverse ninety-degree Z rotation then recovers the B point 1, 0, 0. Include nonzero translation and nonzero rotation in this test; either one alone makes the check less effective.</p>
+        <p>A round trip is necessary but insufficient. An incorrect forward transform paired with its own inverse can still return the starting point. Retain at least one independently specified expected destination point and the basis-vector cases. The combination tests both internal consistency and agreement with the intended physical convention.</p>
+        <p>Before relying on transpose as inverse, check that the supplied rotation is orthonormal and represents a proper rotation. Its columns should have unit length, distinct columns should be perpendicular and its determinant should be positive one within the declared numerical tolerance. A reflection can preserve lengths while failing the proper-rotation requirement. Conversely, these algebraic properties cannot prove that a valid rotation has the intended direction. A transposed rotation can pass them too. Keep physical axis observations and independently defined fixtures alongside the algebraic checks, and document any rounding applied when storing the matrix.</p>
+      </section>
+      <section>
+        <h2>Treat points, directions and rays as different objects</h2>
+        <p>A position changes when the coordinate origin changes. A direction vector does not acquire a positional translation: it is rotated into the new axes. Adding a lever arm to a unit viewing direction mixes a length with a dimensionless direction and changes the object&#39;s meaning. If a ray is represented by an origin and a direction, transform the origin as a point and the direction by rotation only.</p>
+        <p>Homogeneous coordinates provide one way to make the distinction explicit. A point uses a final coordinate of one, so the transform includes translation. A direction uses zero, so translation contributes nothing. A software interface can enforce the distinction through separate types even when its internal representation differs. The key requirement is that a reviewer knows which operation applies to each field.</p>
+        <p>For a camera or ranging instrument, also request the definition of the observation direction and measurement origin. Image pixel coordinates, an optical-axis direction and an aircraft-relative target position are different outputs. A successful message transfer does not establish that a target position was calculated, or that the supplier used the same origin and direction convention as the receiving application.</p>
+      </section>
+      <section>
+        <h2>Compose a moving payload chain at a defined state</h2>
+        <p>If the proposed payload has moving joints, distinguish fixed mounting geometry from state-dependent transforms. An aircraft-to-base relationship may remain fixed while a gimbal-to-sensor relationship changes with joint state. Record the joint axes, zero definitions, direction, state units and observation time. Do not assume a reported angle is a mechanical joint angle rather than a stabilized orientation in another frame.</p>
+        <p>Write the complete source-to-destination path in order. For a chain from sensor to gimbal base to aircraft, each intermediate transform must connect the frames named by the adjacent operation. An adapter plate or factory-defined optical frame can introduce an additional relationship. Omitting it because the mounting looks aligned can produce a consistent but physically incorrect result.</p>
+        <p>Keep assumptions about rigidity and repeatability visible. A fixed transform describes an ideal rigid relationship at the stated mounting condition. It does not quantify flex, vibration, joint backlash or temperature effects. Ask the integration team how these effects are assessed when they matter to the intended measurement; do not hide them inside an unexplained calibration offset.</p>
+      </section>
+      <section>
+        <h2>Separate geometric error from timing error</h2>
+        <p>An offset or attitude can be geometrically correct and applied at the wrong time. Define whether each timestamp describes exposure, measurement, processing or message arrival, and identify its clock. A coordinate calculation that combines an image observation with a navigation state needs an agreed synchronization or interpolation method. Network arrival time is not automatically the observation time.</p>
+        <p>Two hypothetical calculations show why the distinctions matter. At a range of 100 metres, a small angular discrepancy of 0.1 degree corresponds to approximately 0.175 metre of transverse displacement using range multiplied by angle in radians. Separately, a ten-millisecond time discrepancy at a translational speed of 20 metres per second corresponds to 0.20 metre of positional displacement. Neither figure describes UG82 accuracy or a recommended operating condition.</p>
+        <p>Do not add these example numbers to create an asserted total error. Actual effects depend on the geometry, trajectory, correlation and measurement model; a surface intersection can respond differently from a transverse displacement. Build an error budget around the real observation equation and retain the assumptions. A coordinate convention document provides only part of the evidence needed to evaluate measurement accuracy.</p>
+      </section>
+      <section>
+        <h2>Prepare an offline fixture set before hardware integration</h2>
+        <p>A compact fixture set should include identity, separate positive basis vectors, a nonzero translation, a mixed rotation-and-translation point, an inverse round trip and two noncommuting rotations. Add a direction-vector case that must remain unaffected by translation. Use asymmetric inputs and explicit expected outputs so that accidental symmetry cannot make a wrong transform look correct.</p>
+        <p>Record tolerances for numerical comparison and explain them. Floating-point arithmetic may produce a tiny residual where an exact mathematical result is zero. That computational tolerance is distinct from the uncertainty of a measured mounting offset or a calibrated orientation. Passing a numerical unit test cannot demonstrate that the measured physical geometry is accurate.</p>
+        <p>Keep these checks offline. They are intended to validate a data model and its implementation, not to change live control parameters or exercise an aircraft. Any later equipment assessment belongs within the supplier&#39;s applicable integration procedures and the responsible engineering team&#39;s authority. Save fixture inputs, expected outputs and actual results with the implementation revision.</p>
+      </section>
+      <section>
+        <h2>Deliver the definitions alongside the numbers</h2>
+        <p>The handover should connect the frame inventory, axis sketches, interface definitions, transforms, calibration references and fixture results. Identify the drawing and software revisions to which each relationship applies. A transform without its mapping direction and installation identity is difficult to reuse safely, even if its matrix entries have many decimal places.</p>
+        <p>When discussing a UG82 payload installation with UNITED UAV, bring a diagram naming the proposed instruments and the coordinate outputs the receiving system requires. Request the actual aircraft and payload interface documentation, reference origins, axis directions, mounting geometry, orientation conventions and timing definitions. The product page is the common platform reference; those configuration-specific answers establish the engineering interface.</p>
+        <p>The practical deliverable is a set of transformations another competent engineer can interpret and reproduce. It should reveal which quantities are measured, which are supplied definitions and which remain unresolved. That gives the aircraft supplier, payload integrator and processing team a concrete basis for resolving an axis or offset discrepancy before a successful data connection is mistaken for a correct measurement system.</p>
+      </section>
+      <p class="cta"><a href="https://store.uniteduav.com/products/ug82-heavy-lift-vtol-fixed-wing-drone?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=github_ug82_frames_20261103&amp;utm_content=axes_offsets_rotations">Discuss UG82 payload interfaces and configuration requirements</a></p>
+      <p class="source">Official source: <a href="https://store.uniteduav.com/products/ug82-heavy-lift-vtol-fixed-wing-drone?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=github_ug82_frames_20261103&amp;utm_content=axes_offsets_rotations">store.uniteduav.com</a></p>
+      <section><h2>References</h2><ul><li><a href="https://store.uniteduav.com/products/ug82-heavy-lift-vtol-fixed-wing-drone?utm_source=github&amp;utm_medium=referral&amp;utm_campaign=github_ug82_frames_20261103&amp;utm_content=axes_offsets_rotations">UNITED UAV UG82: current platform description and technical inquiry</a></li><li><a href="https://docs.px4.io/main/en/ros2/user_guide#ros-2-px4-frame-conventions">PX4 ROS 2 User Guide: frame-convention differences (a general example, not UG82 software evidence)</a></li></ul></section>
+    </article>
+  </main>
+  <footer>Published by UNITED UAV Official</footer>
+</body>
+</html>
